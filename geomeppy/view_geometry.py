@@ -6,7 +6,6 @@ if TYPE_CHECKING:
 from eppy.function_helpers import getcoords
 from eppy.iddcurrent import iddcurrent
 from six import StringIO
-from six.moves.tkinter import TclError
 
 try:
     from mpl_toolkits.mplot3d import Axes3D  # noqa
@@ -26,11 +25,7 @@ def view_idf(fname=None, idf_txt=None, test=False, idf=None):
     """
     from geomeppy import IDF
 
-    try:
-        plt.figure()
-    except TclError:
-        # this is as expected on the test server
-        return
+    plt.figure()
     if len([arg for arg in [fname, idf_txt, idf] if arg]) > 1:
         raise ValueError("Pass only one of fname, idf_txt or idf.")
     if not idf:
