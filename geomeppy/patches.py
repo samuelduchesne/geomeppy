@@ -20,7 +20,7 @@ from eppy.EPlusInterfaceFunctions import eplusdata, iddindex, parse_idd
 from eppy.EPlusInterfaceFunctions.eplusdata import Eplusdata  # noqa
 from eppy.bunch_subclass import EpBunch as BaseBunch
 from eppy.idf_msequence import Idf_MSequence
-from eppy.idfreader import convertallfields, iddversiontuple
+from eppy.idfreader import convertallfields, iddversiontuple, makebunches_alter
 from eppy.modeleditor import IDF as BaseIDF
 from eppy.modeleditor import IDDNotSetError, namebunch, newrawobject
 
@@ -100,7 +100,7 @@ def idfreader1(
         skiplist = None
     nofirstfields = iddgaps.missingkeys_standard(commdct, data.dtls, skiplist=skiplist)
     iddgaps.missingkeys_nonstandard(block, commdct, data.dtls, nofirstfields)
-    bunchdt = makebunches(data, commdct, theidf)
+    bunchdt = makebunches_alter(data, commdct, theidf)
 
     return bunchdt, block, data, commdct, idd_index, versiontuple
 
