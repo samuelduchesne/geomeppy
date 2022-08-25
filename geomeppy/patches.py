@@ -100,7 +100,7 @@ def idfreader1(
         skiplist = None
     nofirstfields = iddgaps.missingkeys_standard(commdct, data.dtls, skiplist=skiplist)
     iddgaps.missingkeys_nonstandard(block, commdct, data.dtls, nofirstfields)
-    bunchdt = makebunches_alter(data, commdct, theidf)
+    bunchdt = makebunches_alter(data, commdct, theidf, block)
 
     return bunchdt, block, data, commdct, idd_index, versiontuple
 
