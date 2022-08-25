@@ -18,9 +18,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union  # noqa
 from eppy import bunchhelpers, iddgaps
 from eppy.EPlusInterfaceFunctions import eplusdata, iddindex, parse_idd
 from eppy.EPlusInterfaceFunctions.eplusdata import Eplusdata  # noqa
+from eppy.EPlusInterfaceFunctions.structures import CaseInsensitiveDict
 from eppy.bunch_subclass import EpBunch as BaseBunch
 from eppy.idf_msequence import Idf_MSequence
-from eppy.idfreader import convertallfields, iddversiontuple, makebunches_alter
+from eppy.idfreader import convertallfields, iddversiontuple, extension_of_extensible, \
+    NoIDDFieldsError
 from eppy.modeleditor import IDF as BaseIDF
 from eppy.modeleditor import IDDNotSetError, namebunch, newrawobject
 
@@ -189,6 +191,20 @@ def makebunches(
         bunchdt[key] = Idf_MSequence(list1, objs, theidf)
     return bunchdt
 
+def makebunches_alter(data, commdct, theidf, block=None):
+    """make bunches with data"""
+    bunchdt = CaseInsensitiveDict()
+    dt, dtls = data.dt, data.dtls
+    for obj_i, key in enumerate(dtls):
+        key = key.upper()
+        objs = dt[key]
+        list1 = []
+        for obj in objs:
+            bobj = makeabunch(commdct, obj, obj_i, block=block)
+            list1.append(bobj)
+        bunchdt[key] = Idf_MSequence(list1, objs, theidf)
+    return bunchdt
+
 
 def obj2bunch(
     data, commdct, obj
@@ -212,6 +228,7 @@ def makeabunch(
     commdct,  # type: List[List[Dict[str, Any]]]
     obj,  # type: Union[List[Union[float, str]], List[str]]
     obj_i,  # type: int
+    block=None,  # type: Optional[List]
 ):
     # type: (...) -> EpBunch
     """Make a bunch from the object.
@@ -228,6 +245,25 @@ def makeabunch(
     objfields = [field[0] for field in objfields]
     obj_fields = [bunchhelpers.makefieldname(field) for field in objfields]
     bobj = EpBunch(obj, obj_fields, objidd)
+
+    if len(obj) > len(obj_fields):
+        n = len(obj) - len(obj_fields)
+        extlst = extension_of_extensible(commdct[obj_i], block[obj_i], n)
+        errortext = "idfobject with key '{}' & first field '{}' has {} fields while the idd for '{}' has only {} fields. Add the following fields to the object '{}' in file Energy+.idd '{};'".format(
+            obj[0].upper(),
+            obj[1],
+            len(obj) - 1,
+            obj[0].upper(),
+            len(obj_fields) - 1,
+            obj[0].upper(),
+            ", ".join(extlst),
+        )
+        # "idfobject with key 'TIMESTEP' & first field '44' has 2 fields while the idd for 'TIMESTEP' has only 1 fields. Add the following fields to object 'TIMESTEP' in file Energy+.idd A5, A6;'"
+        # print(block[obj_i])
+        # print(errortext)
+        print(extlst)
+        raise NoIDDFieldsError(errortext)
+
     return bobj
 
 
