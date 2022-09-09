@@ -112,13 +112,14 @@ def _get_collections(idf, opacity=1):
 def _get_collection(surface_type, surfaces, opacity, facecolor, edgecolors="black"):
     """Make collections from a list of EnergyPlus surfaces."""
     if surface_type == "shading":
-        coords = [getcoords(s) for s in surfaces if not hasattr(s, "Surface_Type")]
+        coords = [getcoords(s) for s in surfaces if hasattr(s, "coords")]
     else:
         coords = [
             getcoords(s)
             for s in surfaces
             if hasattr(s, "Surface_Type")
             and s.Surface_Type.lower() == surface_type.lower()
+            and hasattr(s, "coords")
         ]
     trimmed_coords = [c for c in coords if c]  # dump any empty surfaces
     collection = Poly3DCollection(
