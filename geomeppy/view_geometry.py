@@ -80,8 +80,7 @@ def view_polygons(polygons):
 
 
 def _get_surfaces(idf):
-    """Get the surfaces from the IDF.
-    """
+    """Get the surfaces from the IDF."""
     surfaces = idf.getsurfaces() + idf.getshadingsurfaces() + idf.getsubsurfaces()
     return surfaces
 
@@ -112,7 +111,10 @@ def _get_collections(idf, opacity=1):
 def _get_collection(surface_type, surfaces, opacity, facecolor, edgecolors="black"):
     """Make collections from a list of EnergyPlus surfaces."""
     if surface_type == "shading":
-        coords = [getcoords(s) for s in surfaces if hasattr(s, "coords")]
+        shading_surfaces = list(
+            filter(lambda s: s.key in s.theidf.idd_index["ref2names"]["AllShadingSurfNames"], surfaces)
+        )
+        coords = [getcoords(s) for s in shading_surfaces if hasattr(s, "coords")]
     else:
         coords = [
             getcoords(s)
@@ -151,7 +153,7 @@ def _get_limits(idf=None, polygons=None):
         z = [pt[2] for color in polygons for p in polygons[color] for pt in p]
 
     elif idf:
-        surfaces = _get_surfaces(idf)
+        surfaces = list(filter(lambda s: hasattr(s, "coords"), _get_surfaces(idf)))
 
         x = [pt[0] for s in surfaces for pt in getcoords(s)]
         y = [pt[1] for s in surfaces for pt in getcoords(s)]
