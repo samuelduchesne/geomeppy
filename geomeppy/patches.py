@@ -21,8 +21,7 @@ from eppy.EPlusInterfaceFunctions.eplusdata import Eplusdata  # noqa
 from eppy.EPlusInterfaceFunctions.structures import CaseInsensitiveDict
 from eppy.bunch_subclass import EpBunch as BaseBunch
 from eppy.idf_msequence import Idf_MSequence
-from eppy.idfreader import convertallfields, iddversiontuple, extension_of_extensible, \
-    NoIDDFieldsError
+from eppy.idfreader import convertallfields, iddversiontuple, convertfields
 from eppy.modeleditor import IDF as BaseIDF
 from eppy.modeleditor import IDDNotSetError, namebunch, newrawobject
 
@@ -163,7 +162,7 @@ def addthisbunch(
     """
     key = thisbunch.key.upper()
     obj = copy.copy(thisbunch.obj)
-    abunch = obj2bunch(data, commdct, obj)
+    abunch = obj2bunch(data, commdct, obj, thisbunch.theidf.block)
     bunchdt[key].append(abunch)
     return abunch
 
@@ -207,7 +206,7 @@ def makebunches_alter(data, commdct, theidf, block=None):
 
 
 def obj2bunch(
-    data, commdct, obj
+    data, commdct, obj, block=None
 ):  # type: (Eplusdata, List[List[Dict[str, Any]]], List[str]) -> EpBunch
     """Make a new bunch object using the data object.
 
@@ -220,50 +219,40 @@ def obj2bunch(
     dtls = data.dtls
     key = obj[0].upper()
     key_i = dtls.index(key)
-    abunch = makeabunch(commdct, obj, key_i)
+    abunch = makeabunch(commdct, obj, key_i, block)
     return abunch
 
 
-def makeabunch(
-    commdct,  # type: List[List[Dict[str, Any]]]
-    obj,  # type: Union[List[Union[float, str]], List[str]]
-    obj_i,  # type: int
-    block=None,  # type: Optional[List]
-):
-    # type: (...) -> EpBunch
-    """Make a bunch from the object.
-
-    :param commdct: Descriptions of IDF fields from the IDD.
-    :param obj: List of field values in an object.
-    :param obj_i: Index of the object in commdct.
-    :returns: EpBunch object.
-
-    """
+def makeabunch(commdct, obj, obj_i, block=None, debugidd=True, ):
+    """make a bunch from the object"""
     objidd = commdct[obj_i]
-    objfields = [comm.get("field") for comm in commdct[obj_i]]  # type: List
+    objfields = [comm.get("field") for comm in commdct[obj_i]]
+    if debugidd:
+        import eppy.ext_field_functions as extff
+
+        if len(obj) > len(objfields):
+            # there are not enough fields in the IDD to match the IDF
+            # -- increase the number of fields in the IDD (in block and commdct)
+            #       -- start
+            n = len(obj) - len(objfields)
+            key_txt = obj[0]
+            objfields = extff.increaseIDDfields(block, commdct, obj_i, key_txt, n)
+            # -- increase the number of fields in the IDD (in block and commdct)
+            #       -- end
+            #
+            # -- convertfields for added fields -  start
+            key_i = obj_i
+            key_comm = commdct[obj_i]
+            try:
+                inblock = block[obj_i]
+            except TypeError as e:
+                inblock = None
+            obj = convertfields(key_comm, obj, inblock)
+            # -- convertfields for added fields -  end
     objfields[0] = ["key"]
     objfields = [field[0] for field in objfields]
     obj_fields = [bunchhelpers.makefieldname(field) for field in objfields]
     bobj = EpBunch(obj, obj_fields, objidd)
-
-    if len(obj) > len(obj_fields):
-        n = len(obj) - len(obj_fields)
-        extlst = extension_of_extensible(commdct[obj_i], block[obj_i], n)
-        errortext = "idfobject with key '{}' & first field '{}' has {} fields while the idd for '{}' has only {} fields. Add the following fields to the object '{}' in file Energy+.idd '{};'".format(
-            obj[0].upper(),
-            obj[1],
-            len(obj) - 1,
-            obj[0].upper(),
-            len(obj_fields) - 1,
-            obj[0].upper(),
-            ", ".join(extlst),
-        )
-        # "idfobject with key 'TIMESTEP' & first field '44' has 2 fields while the idd for 'TIMESTEP' has only 1 fields. Add the following fields to object 'TIMESTEP' in file Energy+.idd A5, A6;'"
-        # print(block[obj_i])
-        # print(errortext)
-        print(extlst)
-        raise NoIDDFieldsError(errortext)
-
     return bobj
 
 
