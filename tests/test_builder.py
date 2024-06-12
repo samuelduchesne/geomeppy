@@ -1,4 +1,6 @@
 """Test for builder module."""
+import pytest
+
 from geomeppy.builder import Block
 
 breaking_coords = [
@@ -220,8 +222,9 @@ class TestAddBlock:
         height = 5
         num_stories = 2
         coordinates = breaking_coords
-        idf.add_block("breaker", coordinates, height, num_stories)
-        idf.intersect_match()
+        with pytest.warns(UserWarning):
+            idf.add_block("breaker", coordinates, height, num_stories)
+            idf.intersect_match()
 
 
 def test_block():
